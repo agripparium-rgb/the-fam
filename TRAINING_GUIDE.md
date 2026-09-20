@@ -81,9 +81,8 @@ git push -u origin lesson/<your-name>-practice
 
 ```bash
 git status
-git checkout lesson/<your-name>-practice
 git fetch origin
-git rebase origin/main
+git rebase origin/main lesson/<your-name>-practice
 git add .
 git commit -m "your message"
 git push
