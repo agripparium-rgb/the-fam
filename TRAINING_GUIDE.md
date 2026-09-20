@@ -81,8 +81,11 @@ git push -u origin lesson/<your-name>-practice
 
 ```bash
 git status
-git pull
+git fetch origin
+git rebase origin/main
 git add .
 git commit -m "your message"
 git push
 ```
+
+If the default branch is not `main`, replace `main` with your repository default branch name.
