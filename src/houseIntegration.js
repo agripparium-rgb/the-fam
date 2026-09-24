@@ -77,6 +77,10 @@ async function syncWorkbookToFirestore({
   collectionName = "houses",
   rows = [],
 }) {
+  if (!firestore || typeof firestore.collection !== "function") {
+    throw new TypeError("firestore must expose a collection(name) function");
+  }
+
   const transformedRows = transformWorkbookRows(rows);
 
   for (const row of transformedRows) {

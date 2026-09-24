@@ -11,7 +11,7 @@ For setup instructions and lesson workflow, see:
 
 The repository now includes starter house integration functions at:
 
-- `/home/runner/work/the-fam/the-fam/src/houseIntegration.js`
+- `src/houseIntegration.js`
 
 Current helpers cover:
 
