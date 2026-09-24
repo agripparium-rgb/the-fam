@@ -10,7 +10,12 @@ function normalizeHouseName(houseName) {
     throw new TypeError("houseName must be a non-empty string");
   }
 
-  return houseName.trim().replace(/\s+/g, " ");
+  const normalized = houseName.trim().replace(/\s+/g, " ");
+  if (!normalized) {
+    throw new TypeError("houseName must be a non-empty string");
+  }
+
+  return normalized;
 }
 
 function houseKey(houseName) {
@@ -60,6 +65,17 @@ function transformWorkbookRows(rows) {
   return rows.map(transformWorkbookRecord);
 }
 
+async function writeRowsInChunks({ firestore, collectionName, rows, chunkSize = 200 }) {
+  for (let index = 0; index < rows.length; index += chunkSize) {
+    const chunk = rows.slice(index, index + chunkSize);
+    await Promise.all(
+      chunk.map((row) =>
+        firestore.collection(collectionName).doc(row.houseKey).set(row, { merge: true }),
+      ),
+    );
+  }
+}
+
 async function upsertHouseRecord({ firestore, collectionName = "houses", record }) {
   if (!firestore || typeof firestore.collection !== "function") {
     throw new TypeError("firestore must expose a collection(name) function");
@@ -90,11 +106,16 @@ async function syncWorkbookToFirestore({
     seenKeys.add(row.houseKey);
   }
 
-  await Promise.all(
-    transformedRows.map((row) =>
-      firestore.collection(collectionName).doc(row.houseKey).set(row, { merge: true }),
-    ),
-  );
+  if (typeof firestore.batch === "function") {
+    const batch = firestore.batch();
+    transformedRows.forEach((row) => {
+      const docRef = firestore.collection(collectionName).doc(row.houseKey);
+      batch.set(docRef, row, { merge: true });
+    });
+    await batch.commit();
+  } else {
+    await writeRowsInChunks({ firestore, collectionName, rows: transformedRows });
+  }
 
   return transformedRows.length;
 }
@@ -105,6 +126,7 @@ module.exports = {
   createHouseBrandingMark,
   transformWorkbookRecord,
   transformWorkbookRows,
+  writeRowsInChunks,
   upsertHouseRecord,
   syncWorkbookToFirestore,
 };
