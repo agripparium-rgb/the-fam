@@ -19,12 +19,18 @@ function normalizeHouseName(houseName) {
 }
 
 function houseKey(houseName) {
-  return normalizeHouseName(houseName).toLowerCase();
+  return normalizeHouseName(houseName)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function createHouseBrandingMark(houseName) {
   const normalized = normalizeHouseName(houseName);
   const key = houseKey(normalized);
+  if (!key) {
+    throw new TypeError("houseName must include at least one alphanumeric character");
+  }
   const monogram = normalized
     .split(" ")
     .map((word) => word[0]?.toUpperCase())
@@ -122,13 +128,17 @@ async function syncWorkbookToFirestore({
     throw new TypeError("firestore must expose a collection(name) function");
   }
 
-  const transformedRows = transformWorkbookRows(rows);
   const seenKeys = new Set();
-  for (const row of transformedRows) {
-    if (seenKeys.has(row.houseKey)) {
-      throw new Error(`Duplicate houseKey found in workbook rows: ${row.houseKey}`);
+  const transformedRows = [];
+  for (const inputRow of rows) {
+    const transformedRow = transformWorkbookRecord(inputRow);
+    if (seenKeys.has(transformedRow.houseKey)) {
+      throw new Error(
+        `Duplicate houseKey found in workbook rows: ${transformedRow.houseKey}`,
+      );
     }
-    seenKeys.add(row.houseKey);
+    seenKeys.add(transformedRow.houseKey);
+    transformedRows.push(transformedRow);
   }
 
   if (typeof firestore.batch === "function") {
