@@ -82,11 +82,19 @@ async function syncWorkbookToFirestore({
   }
 
   const transformedRows = transformWorkbookRows(rows);
-
+  const seenKeys = new Set();
   for (const row of transformedRows) {
-    const docRef = firestore.collection(collectionName).doc(row.houseKey);
-    await docRef.set(row, { merge: true });
+    if (seenKeys.has(row.houseKey)) {
+      throw new Error(`Duplicate houseKey found in workbook rows: ${row.houseKey}`);
+    }
+    seenKeys.add(row.houseKey);
   }
+
+  await Promise.all(
+    transformedRows.map((row) =>
+      firestore.collection(collectionName).doc(row.houseKey).set(row, { merge: true }),
+    ),
+  );
 
   return transformedRows.length;
 }
